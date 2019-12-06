@@ -20,10 +20,6 @@ num_vals = {
     EQ: 3,
 }
 
-def mode_to_int(mode, code, commands):
-    if mode == "0":
-        return int(commands[int(code)])
-    return int(code)
 
 def get_vals_and_locs(opcode, modes, pointer, commands):
     n_vals = num_vals[opcode]
