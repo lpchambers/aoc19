@@ -150,11 +150,12 @@ class Map:
     def __init__(self):
         self.walls = set()
         self.path = {(0, 0)}
+        self.oxygen = None
 
     def has_pos(self, pos):
         return pos in self.walls or pos in self.path
 
-    def print_map(self, droidx, droidy):
+    def print_map(self, droidx, droidy, print_droid=False):
         xmin = min(self.walls.union(self.path).union({(droidx, droidy)}), key=lambda x: x[0])[0]
         xmax = max(self.walls.union(self.path).union({(droidx, droidy)}), key=lambda x: x[0])[0]
         ymin = min(self.walls.union(self.path).union({(droidx, droidy)}), key=lambda x: x[1])[1]
@@ -174,21 +175,30 @@ class Map:
             l = lines[y]
             lines[y] = l[:x] + "." + l[x+1:]
 
-        x = droidx
-        y = droidy
-        x -= xmin
-        y -= ymin
-        l = lines[y]
-        lines[y] = l[:x] + "D" + l[x+1:]
+        if print_droid:
+            x = droidx
+            y = droidy
+            x -= xmin
+            y -= ymin
+            l = lines[y]
+            lines[y] = l[:x] + "D" + l[x+1:]
+
+        if self.oxygen:
+            x, y = self.oxygen
+            x -= xmin
+            y -= ymin
+            l = lines[y]
+            lines[y] = l[:x] + "$" + l[x+1:]
 
         print("\n".join(lines))
 
 class Droid:
-    def __init__(self, computer, shipmap, x=0, y=0):
+    def __init__(self, computer, shipmap, x=0, y=0, steps=0):
         self.computer = computer
         self.shipmap = shipmap
         self.x = x
         self.y = y
+        self.steps = steps
 
     def move(self, x, y, m):
         if m == N:
@@ -221,6 +231,7 @@ class Droid:
     def do_move(self, d):
         self.computer.add_inputs([d])
         self.computer.run_until_stop()
+        self.steps += 1
 
         out = self.computer.pop_outputs()
         ret = out[0]
@@ -234,14 +245,15 @@ class Droid:
             return True
         elif ret == OXYGEN:
             self.x, self.y = self.move(self.x, self.y, d)
-            print("Found Oxygen", self.x, self.y)
+            self.shipmap.oxygen = (self.x, self.y)
+            print("Found Oxygen", self.x, self.y, "Steps", self.steps)
             return True
         else:
             print("Unknown return", ret)
             return False
 
     def copy(self):
-        return Droid(self.computer.copy(), self.shipmap, self.x, self.y)
+        return Droid(self.computer.copy(), self.shipmap, self.x, self.y, self.steps)
 
     def explore(self):
         for d in DIRS:
@@ -284,4 +296,25 @@ c = OpcodeComputer(int_cmds)
 shipmap = Map()
 droid = Droid(c, shipmap)
 droid.explore()
-shipmap.print_map(droid.x, droid.y)
+shipmap.print_map(droid.x, droid.y, True)
+
+# Part 1 : Count 280
+print("Have map. Oxygen at", shipmap.oxygen)
+
+# Part 2
+# Have complete map
+visited = set({shipmap.oxygen})
+
+steps = 0
+while shipmap.path.difference(visited) != set():
+    steps += 1
+    new_visit = set()
+    for p in visited:
+        x, y = p
+        for d in DIRS:
+            nextpos = Droid.move(None, x, y, d)
+            if nextpos in shipmap.path:
+                new_visit.add(nextpos)
+    visited = visited.union(new_visit)
+
+print("Part 2:", steps)
