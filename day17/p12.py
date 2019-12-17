@@ -187,6 +187,71 @@ def int_to_chrs(ints):
 def chrs_to_ints(chrs):
     return [ord(x) for x in chrs]
 
+def find_robot(lines):
+    """
+    Returns a pos and a dir
+    """
+    for rix, row in enumerate(lines):
+        for d in [LEFT, RIGHT, UP, DOWN]:
+            if d in row:
+                return ((rix, row.find(d)), d)
+
+dirs = {
+    LEFT: (0, -1),
+    RIGHT: (0, 1),
+    UP: (-1, 0),
+    DOWN: (1, 0),
+}
+
+opp_dir = {
+    LEFT: RIGHT,
+    RIGHT: LEFT,
+    UP: DOWN,
+    DOWN: UP,
+}
+
+def find_next_dir(lines, pos, cur_dir):
+    x, y = pos
+    opp = opp_dir[cur_dir]
+    for name, delta in dirs.items():
+        if name == cur_dir or name == opp:
+            continue  # Don't repeat same axis
+        dx, dy = delta
+        try:
+            if lines[x+dx][y+dy] == SCAFFOLD:
+                return name
+        except:
+            continue
+    return None
+
+def get_turn(cur_dir, next_dir):
+    if cur_dir == UP:
+        return "L" if next_dir == LEFT else "R"
+    elif cur_dir == LEFT:
+        return "L" if next_dir == DOWN else "R"
+    elif cur_dir == DOWN:
+        return "L" if next_dir == RIGHT else "R"
+    elif cur_dir == RIGHT:
+        return "L" if next_dir == UP else "R"
+    else:
+        print("Unknown current dir", cur_dir)
+
+def find_dist(lines, pos, cur_dir):
+    x, y = pos
+    dx, dy = dirs[cur_dir]
+    n = 0
+    next_brick = SCAFFOLD
+    while next_brick == SCAFFOLD:
+        n += 1
+        x += dx
+        y += dy
+        try:
+            next_brick = lines[x+dx][y+dy]
+        except:
+            break
+    return (n, (x, y))
+
+
 int_cmds = [int(x) for x in line.strip().split(',')]
 int_cmds[0] = 2
 
@@ -197,3 +262,20 @@ out = computer.pop_outputs()
 vis = int_to_chrs(out)
 print(vis)
 vl = vis.splitlines()
+
+pos, cur_dir = find_robot(vl)
+print(pos)
+print(cur_dir)
+
+moves = []
+
+while True:
+    next_dir = find_next_dir(vl, pos, cur_dir)
+    if next_dir is None:
+        break
+    moves.append(get_turn(cur_dir, next_dir))
+    cur_dir = next_dir
+    distance, pos = find_dist(vl, pos, cur_dir)
+    moves.append(distance)
+
+print(moves)
