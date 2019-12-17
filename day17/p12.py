@@ -279,3 +279,85 @@ while True:
     moves.append(distance)
 
 print(moves)
+print(len(moves), "Moves")
+
+mstr = ",".join([str(c) for c in moves])
+
+print(mstr)
+# Find the longest match
+
+patlen = {}
+for x in range(1, 21):
+    match_idx = set()
+    pat = mstr[0:x]
+    for start_idx in range(len(mstr)):
+        match_idx.add(mstr.find(pat, start_idx))
+    patlen[x] = len(match_idx) - 1
+
+maxlen = max([l for l, n in patlen.items() if n > 1])
+print("A Pattern length", maxlen)
+APAT = mstr[:maxlen]
+print(APAT)
+
+after_a = mstr.replace(APAT, "A")
+print("After A", after_a)
+BPAT = "L,12,R,10,L,4"
+after_b = mstr.replace(APAT, "A").replace(BPAT, "B")
+print("After B", after_b)
+CPAT = "L,12,L,6,L,4,L,4"
+
+after_c = mstr.replace(APAT, "A").replace(BPAT, "B").replace(CPAT, "C")
+print("After C", after_c)
+
+print()
+print("APAT", len(APAT), APAT)
+print("BPAT", len(BPAT), BPAT)
+print("CPAT", len(CPAT), CPAT)
+print("ROUTINE", len(after_c), after_c)
+
+aint = chrs_to_ints(APAT + NL)
+bint = chrs_to_ints(BPAT + NL)
+cint = chrs_to_ints(CPAT + NL)
+routine_int = chrs_to_ints(after_c + NL)
+
+# Routine
+computer.add_inputs(routine_int)
+computer.run_until_stop()
+out = computer.pop_outputs()
+vis = "".join([chr(c) for c in out])
+print("Computer out:", vis)
+
+# Function A
+computer.add_inputs(aint)
+computer.run_until_stop()
+out = computer.pop_outputs()
+vis = "".join([chr(c) for c in out])
+print("Computer out:", vis)
+
+# Function B
+computer.add_inputs(bint)
+computer.run_until_stop()
+out = computer.pop_outputs()
+vis = "".join([chr(c) for c in out])
+print("Computer out:", vis)
+
+# Function C
+computer.add_inputs(cint)
+computer.run_until_stop()
+out = computer.pop_outputs()
+vis = "".join([chr(c) for c in out])
+print("Computer out:", vis)
+
+# Video feed?
+FEED = False
+if FEED:
+    fval = chrs_to_ints("y" + NL)
+else:
+    fval = chrs_to_ints("n" + NL)
+
+computer.add_inputs(fval)
+computer.run_until_stop()
+out = computer.pop_outputs()
+print(out[-1])
+vis = "".join([chr(c) for c in out])
+print("Computer out:", vis)
