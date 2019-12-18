@@ -304,46 +304,40 @@ for start_key in keys:
 import pprint
 pprint.pprint(pair_costs)
 
-# Calculate lower bound of graph
-s = 0
-min_edge_cost = {}
-for v, c in pair_costs.items():
-    nums = [x[0] for x in c.values()]
-    s_nums = sorted(nums)
-    # Cost to self is included, so get #1 and #2
-    s += s_nums[1] + s_nums[2]
-    min_edge_cost[v] = s_nums[1]
+# # Add dummy
+# ALL_DOORS = [k.upper() for k in keys]
+# pair_costs["DUMMY"] = {}
+# for k in pair_costs:
+#     pair_costs[k]["DUMMY"] = (0, ALL_DOORS)
+#     pair_costs["DUMMY"][k] = (0, [])
+# 
+# # Calculate lower bound of graph
+# s = 0
+# min_edge_cost = {}
+# for v, c in pair_costs.items():
+#     nums = [x[0] for x in c.values()]
+#     s_nums = sorted(nums)
+#     # Cost to self is included, so get #1 and #2
+#     s += s_nums[1] + s_nums[2]
+#     min_edge_cost[v] = s_nums[1]
+# 
+# 
+# lower_bound = s // 2
+# print(lower_bound)
+# print(min_edge_cost)
 
-
-lower_bound = s // 2
-
-lb_start = MARKER
-lb_visit = [MARKER]
-lower_bound_edge = {}
-while len(lb_visit) != len(keys):
-    lbc = sorted(pair_costs[lb_start].items(), key=lambda x: x[1][0])
-    for lbk, lbv in lbc:
-        if lbk in lb_visit:
-            continue
-        lower_bound_edge[lb_start] = lbv[0]
-        lb_visit.append(lbk)
-        lb_start = lbk
-        break
-
-lower_bound_edge[lb_start] = pair_costs[lb_start][MARKER][0]
-lower_bound = sum(lower_bound_edge.values())
-print(lower_bound)
-
-# List of (position, cost, open_doors, collected_keys, lower_bound)
-unchecked = [(MARKER, 0, [], [MARKER], lower_bound)]
+# List of (position, cost, open_doors, collected_keys)
+unchecked = [(MARKER, 0, [], [MARKER])]
+# Cache cost
+min_cost_to = {MARKER: 0}
 shortest_cost = None
 shortest_path = None
 while unchecked:
-    pos, cost, open_doors, collected_keys, lower_bound = unchecked.pop(0)
-    print(shortest_cost, lower_bound, collected_keys)
+    pos, cost, open_doors, collected_keys = unchecked.pop(0)
+    #print(shortest_cost, collected_keys)
     # Exit condition
     if len(collected_keys) == len(keys):
-        print(collected_keys)
+        print(cost, collected_keys)
         if shortest_cost is None:
             shortest_cost = cost
             shortest_path = collected_keys
@@ -353,6 +347,9 @@ while unchecked:
         print(shortest_cost)
         continue
 
+    if shortest_cost is not None and cost > shortest_cost:
+        continue
+
     for key, val in pair_costs[pos].items():
         # If we already have the key, ignore it
         if key in collected_keys:
@@ -360,14 +357,16 @@ while unchecked:
         cost_to_key, doors_in_way = val
         # If the path to the key is open, try it
         if all(door in open_doors for door in doors_in_way):
-            # Computer a new lower bound - if it is already greater than
-            # the current loewst cost, ignore this branch entirely
-            new_lower = lower_bound - lower_bound_edge[pos] + cost_to_key
-            if shortest_cost and new_lower > shortest_cost:
-                # print("Prune branch")
+            new_cost = cost + cost_to_key
+            to = key + "".join(sorted(collected_keys + [key]))
+            if to not in min_cost_to:
+                min_cost_to[to] = new_cost
+            elif min_cost_to[to] < new_cost:
+                # prune
                 continue
-
-            check = (key, cost+cost_to_key, open_doors + [key.upper()], collected_keys + [key], new_lower)
+            else:
+                min_cost_to[to] = new_cost
+            check = (key, cost+cost_to_key, open_doors + [key.upper()], collected_keys + [key])
             unchecked.insert(0, check)
 
 print(shortest_cost)
