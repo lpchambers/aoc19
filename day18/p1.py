@@ -6,20 +6,22 @@ with open('input') as f:
 # lines = """#########
 # #b.A.@.a#
 # #########""".splitlines()
-lines = """########################
-#f.D.E.e.C.b.A.@.a.B.c.#
-######################.#
-#d.....................#
-########################""".splitlines()
-lines = """#################
-#i.G..c...e..H.p#
-########.########
-#j.A..b...f..D.o#
-########@########
-#k.E..a...g..B.n#
-########.########
-#l.F..d...h..C.m#
-#################""".splitlines()
+
+# lines = """########################
+# #f.D.E.e.C.b.A.@.a.B.c.#
+# ######################.#
+# #d.....................#
+# ########################""".splitlines()
+
+# lines = """#################
+# #i.G..c...e..H.p#
+# ########.########
+# #j.A..b...f..D.o#
+# ########@########
+# #k.E..a...g..B.n#
+# ########.########
+# #l.F..d...h..C.m#
+# #################""".splitlines()
 
 
 INF = 999999999999999
@@ -282,7 +284,7 @@ for start_key in keys:
                 new_doors = []
             elif lines[r][c] in string.ascii_uppercase:
                 # Gone through door
-                new_doors = [lines[r][c]]
+                new_doors = [lines[r][c].lower()]
             else:
                 # wall
                 continue
@@ -303,6 +305,30 @@ for start_key in keys:
 
 import pprint
 pprint.pprint(pair_costs)
+key_to_bitmask = {}
+
+def keys_to_bitmask(keys):
+    if type(keys) is str:
+        keys = [keys]
+
+    bits = None
+    for key in keys:
+        kbit = 1 << (ord(key) - ord('a'))
+        key_to_bitmask[key] = kbit
+        if bits is None:
+            bits = kbit
+        else:
+            bits |= kbit
+    if bits is None:
+        return 0
+    return bits
+
+
+pair_cost_mask = {k1: {k2: (v2[0], keys_to_bitmask(v2[1])) for k2, v2 in v1.items()} for k1, v1 in pair_costs.items()}
+
+
+pprint.pprint(pair_cost_mask)
+
 
 # # Add dummy
 # ALL_DOORS = [k.upper() for k in keys]
@@ -326,48 +352,56 @@ pprint.pprint(pair_costs)
 # print(lower_bound)
 # print(min_edge_cost)
 
-# List of (position, cost, open_doors, collected_keys)
-unchecked = [(MARKER, 0, [], [MARKER])]
+# List of (position, cost, collected_keys)
+unchecked = [(MARKER, 0, 0)]
 # Cache cost
 min_cost_to = {MARKER: 0}
 shortest_cost = None
 shortest_path = None
+ALL_KEYS_MASK = 2**(len(keys)-1) - 1
+
 while unchecked:
-    pos, cost, open_doors, collected_keys = unchecked.pop(0)
-    #print(shortest_cost, collected_keys)
+    pos, cost, collected_keys = unchecked.pop(0)
+    # print(shortest_cost, pos, cost, collected_keys, bin(collected_keys), len(bin(collected_keys)))
     # Exit condition
-    if len(collected_keys) == len(keys):
-        print(cost, collected_keys)
+    if collected_keys == ALL_KEYS_MASK:
         if shortest_cost is None:
             shortest_cost = cost
             shortest_path = collected_keys
         elif cost < shortest_cost:
             shortest_cost = cost
             shortest_path = collected_keys
-        print(shortest_cost)
+            print(shortest_cost, shortest_path)
         continue
 
     if shortest_cost is not None and cost > shortest_cost:
         continue
 
-    for key, val in pair_costs[pos].items():
-        # If we already have the key, ignore it
-        if key in collected_keys:
+    for key, val in pair_cost_mask[pos].items():
+        if key == MARKER:
             continue
+        # If we already have the key, ignore it
+        keymask = keys_to_bitmask(key)
+        if keymask & collected_keys:
+            continue
+
         cost_to_key, doors_in_way = val
+        # if no path (ie closed doors), not a valid path
         # If the path to the key is open, try it
-        if all(door in open_doors for door in doors_in_way):
-            new_cost = cost + cost_to_key
-            to = key + "".join(sorted(collected_keys + [key]))
-            if to not in min_cost_to:
-                min_cost_to[to] = new_cost
-            elif min_cost_to[to] < new_cost:
-                # prune
-                continue
-            else:
-                min_cost_to[to] = new_cost
-            check = (key, cost+cost_to_key, open_doors + [key.upper()], collected_keys + [key])
-            unchecked.insert(0, check)
+        if (doors_in_way & collected_keys) ^ doors_in_way:
+            #print("Door in way", key)
+            continue
+
+        new_key_mask = collected_keys | keymask
+        new_cost = cost + cost_to_key
+        to = (key, new_key_mask)
+        if min_cost_to.get(to, 99999999999999999) < new_cost:
+            continue
+
+        min_cost_to[to] = new_cost
+        check = (key, cost+cost_to_key, new_key_mask)
+        unchecked.insert(0, check)  # DFS
+        #unchecked.append(check)  # BFS
 
 print(shortest_cost)
 print(shortest_path)
