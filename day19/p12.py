@@ -134,37 +134,57 @@ with open('input') as f:
 
 int_cmds = [int(x) for x in line.strip().split(',')]
 
-# n = 0
-# computer = OpcodeComputer(int_cmds)
-# for x in range(50):
-#     for y in range(50):
-#         computer = OpcodeComputer(int_cmds.copy())
-#         computer.add_inputs([x, y])
-#         computer.run_until_stop()
-#         if computer.pop_outputs() == [1]:
-#             n += 1
-# print("Part 1", n)
-valid_tl = set()
-DELTA = 20
-NTEST = 100 // DELTA
-ones = set()
-for x in range(0, 10000, DELTA):
-    for y in range(0, 10000, DELTA):
+n = 0
+beam = []
+computer = OpcodeComputer(int_cmds)
+for x in range(50):
+    for y in range(50):
         computer = OpcodeComputer(int_cmds.copy())
         computer.add_inputs([x, y])
         computer.run_until_stop()
         if computer.pop_outputs() == [1]:
-            ones.add((x, y))
-    print(x)
-print(ones)
+            beam.append((x, y))
+            n += 1
+print("Part 1", n)
 
-def test(pt):
-    x, y = pt
-    return all([(x+dx*DELTA, y+dy*DELTA) in ones for dx in range(NTEST) for dy in range(NTEST)])
+lines = ["." * 50] * 50
+for x, y in beam:
+    l = lines[y]
+    l = l[:x] + "#" + l[x+1:]
+    lines[y] = l
 
-for pt in ones:
-    if test(pt):
-        valid_tl.add(pt)
+print("\n".join(lines))
 
-print("VALID")
-print(valid_tl)
+def test_valid(x, y):
+    computer = OpcodeComputer(int_cmds.copy())
+    computer.add_inputs([x, y])
+    computer.run_until_stop()
+    return computer.pop_outputs() == [1]
+
+def fits_box(x, y):
+    return test_valid(x+99, y+99) and test_valid(x, y+99) and test_valid(x+99,y)
+
+should_break = False
+prev_x_start = 0
+for y in range(99, 10000):
+    prev = False
+    xstart = 0
+    for x in range(prev_x_start, 10000):
+        print(x, y)
+        if test_valid(x, y):
+            prev = True
+            if xstart == 0:
+                xstart = x
+            if fits_box(x, y):
+                print("x", x, "y", y)
+                X = x
+                Y = y
+                should_break = True
+                break
+        else:
+            if prev:
+                break
+    prev_x_start = xstart
+    if should_break:
+        break
+print(x * 10000 + y)
